@@ -1,6 +1,0 @@
-librosa
-matplotlib
-numpy
-pandas
-scikit-image
-scipy
