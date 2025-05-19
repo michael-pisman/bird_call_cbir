@@ -68,6 +68,9 @@ pip install -r src/requirements.txt
 ## Docker
 
 ```
+docker pull mpisman/birds_p0:latest
+```
+
 
 ## Usage
 
