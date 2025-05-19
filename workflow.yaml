@@ -1,91 +1,63 @@
 spec:
-  parallelism: 6
-  serviceAccountName: argo-workflow
-  entrypoint: gabor-matrix
   templates:
-    - name: gabor-matrix
+    - name: gabor-batch
+      inputs: {}
+      outputs: {}
+      metadata: {}
       steps:
-        - - name: generate-matrix
-            template: generate-matrix
-        - - name: run-gabor
-            template: run-gabor
+        - - name: run-gabor-batch
+            template: run-gabor-batch
             arguments:
               parameters:
-                - name: window_size
-                  value: '{{item.window_size}}'
-                - name: percent_overlap
-                  value: '{{item.percent_overlap}}'
-                - name: window_type
-                  value: '{{item.window_type}}'
-                - name: scaling
-                  value: '{{item.scaling}}'
-                - name: mode
-                  value: '{{item.mode}}'
-            withParam: '{{steps.generate-matrix.outputs.result}}'
-    - name: generate-matrix
-      script:
-        image: python:3.11-slim
-        command: [ python ]
-        source: |
-          import json, itertools
-          window_sizes = ["512","1024","2048"]
-          percent_overlaps = ["0","10","20","30","40","50","60","70","80","90",]
-          window_types = ["tukey", "boxcar", "hann", "hamming", "blackman", "blackmanharris", "bartlett", "kaiser"]
-          scalings = ["density","spectrum"]
-          modes = ["psd","magnitude"]
-          matrix = [
-            {
-              "window_size":     ws,
-              "percent_overlap": po,
-              "window_type":     wt,
-              "scaling":         sc,
-              "mode":            md
-            }
-            for ws, po, wt, sc, md in itertools.product(
-              window_sizes, percent_overlaps, window_types, scalings, modes
-            )
-          ]
-          # json.dumps(matrix)
-          print(json.dumps(matrix))
-    - name: run-gabor
+                - name: job_id
+                  value: "{{item}}"
+            withSequence:
+              count: "30"
+    - name: run-gabor-batch
       inputs:
         parameters:
-          - name: window_size
-          - name: percent_overlap
-          - name: window_type
-          - name: scaling
-          - name: mode
-      outputs:
-        artifacts:
-          - name: precision-recall
-            path: "/app/precision_recall/Gabor_3_4_{{inputs.parameters.window_size}}_{{inputs.parameters.percent_overlap}}_{{inputs.parameters.window_type}}_{{inputs.parameters.scaling}}_{{inputs.parameters.mode}}_p_r.txt"
+          - name: job_id
+      outputs: {}
+      metadata: {}
       container:
+        name: ""
         image: mpisman/birds_p0:latest
-        command: ["python", "main.py"]
-        args: 
-          - "--window_size={{inputs.parameters.window_size}}"
-          - "--percent_overlap={{inputs.parameters.percent_overlap}}"
-          - "--window_type={{inputs.parameters.window_type}}"
-          - "--scaling={{inputs.parameters.scaling}}"
-          - "--mode={{inputs.parameters.mode}}"
+        command:
+          - python
+          - main.py
+        args:
+          - --job_id={{inputs.parameters.job_id}}
+          - --mongodb_url=mongodb://root:7dF65PsTI4@mongo-mongodb:27017
         resources: {}
-        # volumeMounts:
-        #   - name: recordings
-        #     mountPath: /app/Recordings
-        #   - name: rois
-        #     mountPath: /app/ROIs
-        #   - name: spectrograms
-        #     mountPath: /app/Spectrograms
-        #   - name: features
-        #     mountPath: /app/features
-  # arguments: {}
-
-  # volumes:
-  #   - name: recordings
-  #     emptyDir: {}
-  #   - name: rois
-  #     emptyDir: {}
-  #   - name: spectrograms
-  #     emptyDir: {}
-  #   - name: features
-  #     emptyDir: {}
+      podSpecPatch: |
+        {
+          "affinity": {
+            "podAntiAffinity": {
+              "preferredDuringSchedulingIgnoredDuringExecution": [
+                {
+                  "weight": 100,
+                  "podAffinityTerm": {
+                    "labelSelector": {
+                      "matchExpressions": [
+                        {
+                          "key": "workflows.argoproj.io/workflow",
+                          "operator": "In",
+                          "values": ["{{workflow.name}}"]
+                        }
+                      ]
+                    },
+                    "topologyKey": "kubernetes.io/hostname"
+                  }
+                }
+              ]
+            }
+          }
+        }
+  entrypoint: gabor-batch
+  arguments: {}
+  serviceAccountName: argo-workflow
+  parallelism: 30
+  ttlStrategy:
+    secondsAfterCompletion: 300
+  podGC:
+    strategy: OnPodSuccess
