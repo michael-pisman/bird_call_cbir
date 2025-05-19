@@ -8,6 +8,8 @@ A lightweight Python framework for content-based retrieval of bird-call recordin
 
 Our semi-exhaustive sweep over resampling methods and spectrogram parameters yielded the following insights:
 
+![image](https://github.com/user-attachments/assets/e6db8cce-2cac-4f55-b962-7e982c891540)
+
 ![image](https://github.com/user-attachments/assets/471ab84b-d4d0-4123-a680-bb20d77f00f2)
 
 ## Experimental Findings (Semi-Exhaustive Testing)
