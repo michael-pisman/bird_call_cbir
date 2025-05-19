@@ -27,7 +27,7 @@ spec:
           - main.py
         args:
           - --job_id={{inputs.parameters.job_id}}
-          - --mongodb_url=mongodb://root:7dF65PsTI4@mongo-mongodb:27017
+          - --mongodb_url=mongodb://root:password@mongodb:27017
         resources: {}
       podSpecPatch: |
         {
